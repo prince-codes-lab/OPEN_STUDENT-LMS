@@ -3,47 +3,42 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Logo } from "@/components/logo"
+import Link from "next/link"
 
-export default function AdminLoginPage() {
-  const router = useRouter()
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [message, setMessage] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setMessage("")
     setLoading(true)
 
     try {
-      console.log("[v0] Admin login attempt:", email)
-
-      const response = await fetch("/api/admin/login", {
+      const response = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        const data = await response.json()
-        setError(data.error || "Login failed")
-        return
+        throw new Error(data.error || "Failed to send reset email")
       }
 
-      console.log("[v0] Admin login successful")
-      router.push("/admin")
-      router.refresh()
+      setMessage("If an account exists with this email, you will receive a password reset link shortly.")
     } catch (err) {
-      console.error("[v0] Admin login error:", err)
-      setError("An error occurred. Please try again.")
+      setError(err instanceof Error ? err.message : "An error occurred")
     } finally {
       setLoading(false)
     }
@@ -57,15 +52,20 @@ export default function AdminLoginPage() {
             <Logo className="h-16 w-16" />
           </div>
           <div className="text-center">
-            <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
-            <CardDescription>Sign in to access the admin dashboard</CardDescription>
+            <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
+            <CardDescription>Enter your email to receive a password reset link</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            {message && (
+              <Alert className="border-green-500 text-green-500">
+                <AlertDescription>{message}</AlertDescription>
               </Alert>
             )}
 
@@ -74,7 +74,7 @@ export default function AdminLoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@example.com"
+                placeholder="john@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -82,22 +82,15 @@ export default function AdminLoginPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-
             <Button type="submit" className="w-full bg-[#4E0942] hover:bg-[#6b0c5c]" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "Sending..." : "Send Reset Link"}
             </Button>
+
+            <div className="text-center text-sm text-muted-foreground">
+              <Link href="/auth/login" className="hover:text-primary">
+                Back to Login
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>
